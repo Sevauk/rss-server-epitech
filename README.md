@@ -35,6 +35,7 @@ Obtenir la liste des flux RSS
       "name": "Feed name",
   }]
 }
+```
 
 ### PUT /feed
 Ajouter un feed
