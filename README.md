@@ -30,7 +30,7 @@ Obtenir la liste des flux RSS
 
 ```json
 {
-  feeds: [{
+  "feeds": [{
       "url": "http://website/feed",
       "name": "Feed name",
   }]
