@@ -24,15 +24,19 @@ Obtenir un access_token avec l'email et le nom d'utilisateur.
 }
 ```
 ### GET /feed
-Obtenir la liste des flux RSS
+Obtenir un flux des feeds de l'utilisateur. Les articles sont classés par ordre chronologique du plus récent au plus aucien.
 
 #### Response body
 
 ```json
 {
-  "feeds": [{
-      "url": "http://website/feed",
-      "name": "Feed name",
+  "items": [{
+    "title": "Article's title",
+    "description": "Article's description",
+    "link": "Article's link",
+    "feedName": "Feed name",
+    "feedUrl": "http://website/feed",
+    "date": "Wed, 22 Mar 2017 16:39:31 +0000"
   }]
 }
 ```
@@ -43,13 +47,13 @@ Ajouter un feed
 #### Body (url encoded):
 
 ```
-  url=http://website/feed
-  name=Feed name
+url=http://website/feed
+name=Feed name
 ```
 ### DELETE /feed
 Supprimer un feed
 
 #### Url parameters
 ```
-  url=http://website/feed
+url=http://website/feed
 ```
