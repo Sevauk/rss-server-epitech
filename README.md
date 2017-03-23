@@ -44,7 +44,7 @@ Obtenir un flux des feeds de l'utilisateur. Les articles sont classés par ordre
 ### PUT /feed
 Ajouter un feed
 
-#### Body (url encoded):
+#### Body (form url encoded):
 
 ```
 url=http://website/feed
