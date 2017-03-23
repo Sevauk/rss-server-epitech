@@ -1,14 +1,9 @@
 package com.example.adrienmorel.rss;
 
-import android.renderscript.ScriptGroup;
-import android.text.TextUtils;
-
-import com.easy.adri.StringHelpers;
 import com.example.adrienmorel.rss.model.User;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.nanohttpd.protocols.http.HTTPSession;
 import org.nanohttpd.protocols.http.IHTTPSession;
 import org.nanohttpd.protocols.http.NanoHTTPD;
 import org.nanohttpd.protocols.http.request.Method;
@@ -16,23 +11,16 @@ import org.nanohttpd.protocols.http.response.IStatus;
 import org.nanohttpd.protocols.http.response.Response;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.security.Key;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.impl.crypto.MacProvider;
 
 import static org.nanohttpd.protocols.http.response.Response.newFixedLengthResponse;
@@ -40,6 +28,7 @@ import static org.nanohttpd.protocols.http.response.Status.BAD_REQUEST;
 import static org.nanohttpd.protocols.http.response.Status.FORBIDDEN;
 import static org.nanohttpd.protocols.http.response.Status.INTERNAL_ERROR;
 import static org.nanohttpd.protocols.http.response.Status.LENGTH_REQUIRED;
+import static org.nanohttpd.protocols.http.response.Status.METHOD_NOT_ALLOWED;
 import static org.nanohttpd.protocols.http.response.Status.NOT_FOUND;
 import static org.nanohttpd.protocols.http.response.Status.OK;
 import static org.nanohttpd.protocols.http.response.Status.UNAUTHORIZED;
@@ -60,6 +49,11 @@ public class Router extends NanoHTTPD {
     private Response bad(IStatus status) {
         mMainActivity.log("error: " + status.getDescription());
         return newFixedLengthResponse(status, "plain/text", status.getDescription());
+    }
+
+    private Response good() {
+        mMainActivity.log("OK 200");
+        return newFixedLengthResponse("Success");
     }
 
     private Response answerJSON(JSONObject obj) {
@@ -150,7 +144,84 @@ public class Router extends NanoHTTPD {
         }
     }
 
-    private Response route(String uri, IHTTPSession session) {
+    User userFromToken(IHTTPSession session) {
+        Map<String, String> headers = session.getHeaders();
+
+        try {
+            String bearer = headers.get("Authorization");
+            String jwt = bearer.substring("Bearer ".length());
+            String user = Jwts.parser()
+                    .setSigningKey(key)
+                    .parseClaimsJws(jwt)
+                    .getBody()
+                    .getSubject();
+
+            List<User> users = User.find(User.class, "email = ?", user);
+
+            if (user.isEmpty())
+                return null;
+
+            return users.get(0);
+
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    Response getFeed(IHTTPSession session) {
+        if (session.getMethod() != Method.DELETE)
+            return bad(METHOD_NOT_ALLOWED);
+
+        User user = userFromToken(session);
+        if (user == null)
+            return bad(UNAUTHORIZED);
+        return good();
+    }
+
+    Response putFeed(IHTTPSession session) {
+
+        if (session.getMethod() != Method.PUT)
+            return bad(METHOD_NOT_ALLOWED);
+
+        User user = userFromToken(session);
+        if (user == null)
+            return bad(UNAUTHORIZED);
+
+        try {
+            Map<String, String> args = splitQuery(readBody(session));
+            user.feeds.add(args.get(""));
+
+        } catch (Exception e) {
+            return bad(BAD_REQUEST);
+        }
+
+        return good();
+    }
+
+    Response deleteFeed(IHTTPSession session) {
+        if (session.getMethod() != Method.DELETE)
+            return bad(METHOD_NOT_ALLOWED);
+
+        User user = userFromToken(session);
+        if (user == null)
+            return bad(UNAUTHORIZED);
+        return good();
+    }
+
+    Response feed(IHTTPSession session) {
+        switch (session.getMethod()) {
+            case GET:
+                return getFeed(session);
+            case PUT:
+                return putFeed(session);
+            case DELETE:
+                return deleteFeed(session);
+            default:
+                return bad(METHOD_NOT_ALLOWED);
+        }
+    }
+
+    Response route(String uri, IHTTPSession session) {
 
         String[] pts = uri.split("/");
         uri = "";
@@ -161,8 +232,11 @@ public class Router extends NanoHTTPD {
         switch (uri) {
             case "authorization/email/":
                 return authorization(session);
+            case "feed":
+                return feed(session);
+            default:
+                return newFixedLengthResponse("Invalid endpoint. Check out <a href='https://github.com/Sevauk/rss-server-epitech'>https://github.com/Sevauk/rss-server-epitech</a>");
         }
-        return bad(NOT_FOUND);
     }
 
     @Override

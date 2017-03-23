@@ -48,7 +48,6 @@ Ajouter un feed
 
 ```
 url=http://website/feed
-name=Feed name
 ```
 ### DELETE /feed
 Supprimer un feed
