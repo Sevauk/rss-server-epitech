@@ -4,7 +4,7 @@ Serveur d'aggréation RSS du module Java d'Epitech.
 
 ## API
 
-Pour toutes les commandes vous enverrez dans un header HTTP `Bearer votre_token`.
+Pour toutes les commandes vous enverrez dans un header HTTP `Authorization: Bearer votre_token`.
 
 ### POST /authorization/email
 Obtenir un access_token avec l'email et le nom d'utilisateur.
