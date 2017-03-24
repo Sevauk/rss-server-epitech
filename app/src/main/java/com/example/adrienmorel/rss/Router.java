@@ -27,6 +27,7 @@ import static org.nanohttpd.protocols.http.response.Status.FORBIDDEN;
 import static org.nanohttpd.protocols.http.response.Status.INTERNAL_ERROR;
 import static org.nanohttpd.protocols.http.response.Status.LENGTH_REQUIRED;
 import static org.nanohttpd.protocols.http.response.Status.METHOD_NOT_ALLOWED;
+import static org.nanohttpd.protocols.http.response.Status.NOT_ACCEPTABLE;
 import static org.nanohttpd.protocols.http.response.Status.NOT_FOUND;
 import static org.nanohttpd.protocols.http.response.Status.OK;
 import static org.nanohttpd.protocols.http.response.Status.UNAUTHORIZED;
@@ -161,7 +162,9 @@ public class Router extends NanoHTTPD {
             if (users.isEmpty())
                 return null;
 
-            return users.get(0);
+            User found = users.get(0);
+            found.feeds = User.Feed.find(User.Feed.class, "user = ?", Long.toString(found.getId()));
+            return found;
 
         } catch (Exception e) {
             mMainActivity.log(e.toString());
@@ -170,7 +173,7 @@ public class Router extends NanoHTTPD {
     }
 
     Response getFeed(IHTTPSession session) {
-        if (session.getMethod() != Method.DELETE)
+        if (session.getMethod() != Method.GET)
             return bad(METHOD_NOT_ALLOWED);
 
         User user = userFromToken(session);
@@ -192,9 +195,13 @@ public class Router extends NanoHTTPD {
 
         try {
             Map<String, String> args = splitQuery(readBody(session));
-            user.feeds.add(args.get("url"));
-            user.update();
+            User.Feed feed = new User.Feed();
+            feed.url = args.get("url");
+            feed.user = user;
 
+            if (User.Feed.find(User.Feed.class, "url = ?", feed.url).isEmpty())
+                feed.save();
+            else return bad(NOT_ACCEPTABLE);
         } catch (Exception e) {
             return bad(BAD_REQUEST);
         }
@@ -208,8 +215,16 @@ public class Router extends NanoHTTPD {
             return bad(METHOD_NOT_ALLOWED);
 
         User user = userFromToken(session);
+
         if (user == null)
             return bad(UNAUTHORIZED);
+
+        Map<String, List<String>> params = session.getParameters();
+        List<String> id = params.get("url");
+        String url = id.get(0);
+        List<User.Feed> feeds = User.Feed.find(User.Feed.class, "url = ? AND user = ?", url, Long.toString(user.getId()));
+        feeds.get(0).delete();
+
         return good();
     }
 
