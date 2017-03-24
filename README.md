@@ -34,7 +34,6 @@ Obtenir un flux des feeds de l'utilisateur. Les articles sont classés par ordre
     "title": "Article's title",
     "description": "Article's description",
     "link": "Article's link",
-    "feedName": "Feed name",
     "feedUrl": "http://website/feed",
     "date": "Wed, 22 Mar 2017 16:39:31 +0000"
   }]
