@@ -1,6 +1,5 @@
 package com.example.adrienmorel.rss.model;
 
-import com.example.adrienmorel.rss.Router;
 import com.orm.SugarRecord;
 
 import java.util.ArrayList;
@@ -20,7 +19,13 @@ public class User extends SugarRecord {
 
         return Jwts.builder()
                 .setSubject(email)
-                .signWith(SignatureAlgorithm.HS256, Router.key)
+                .signWith(SignatureAlgorithm.HS512, "foo")
                 .compact();
+    }
+
+    public String pullFeed() {
+        for (String feed: feeds) {
+
+        }
     }
 }

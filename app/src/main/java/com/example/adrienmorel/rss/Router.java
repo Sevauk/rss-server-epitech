@@ -15,13 +15,11 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.security.Key;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.impl.crypto.MacProvider;
 
 import static org.nanohttpd.protocols.http.response.Response.newFixedLengthResponse;
 import static org.nanohttpd.protocols.http.response.Status.BAD_REQUEST;
@@ -37,7 +35,6 @@ public class Router extends NanoHTTPD {
 
     MainActivity mMainActivity;
     int port = 8080;
-    public static Key key = MacProvider.generateKey();
 
     public Router(MainActivity mainActivity) throws IOException {
         super(8080);
@@ -148,22 +145,26 @@ public class Router extends NanoHTTPD {
         Map<String, String> headers = session.getHeaders();
 
         try {
-            String bearer = headers.get("Authorization");
+
+
+            String bearer = headers.get("authorization");
             String jwt = bearer.substring("Bearer ".length());
-            String user = Jwts.parser()
-                    .setSigningKey(key)
+
+            String joe = Jwts.parser()
+                    .setSigningKey("foo")
                     .parseClaimsJws(jwt)
                     .getBody()
                     .getSubject();
 
-            List<User> users = User.find(User.class, "email = ?", user);
+            List<User> users = User.find(User.class, "email = ?", joe);
 
-            if (user.isEmpty())
+            if (users.isEmpty())
                 return null;
 
             return users.get(0);
 
         } catch (Exception e) {
+            mMainActivity.log(e.toString());
             return null;
         }
     }
@@ -175,7 +176,9 @@ public class Router extends NanoHTTPD {
         User user = userFromToken(session);
         if (user == null)
             return bad(UNAUTHORIZED);
-        return good();
+
+        String json = user.pullFeed();
+        return newFixedLengthResponse(json);
     }
 
     Response putFeed(IHTTPSession session) {
@@ -189,7 +192,8 @@ public class Router extends NanoHTTPD {
 
         try {
             Map<String, String> args = splitQuery(readBody(session));
-            user.feeds.add(args.get(""));
+            user.feeds.add(args.get("url"));
+            user.update();
 
         } catch (Exception e) {
             return bad(BAD_REQUEST);
@@ -199,6 +203,7 @@ public class Router extends NanoHTTPD {
     }
 
     Response deleteFeed(IHTTPSession session) {
+
         if (session.getMethod() != Method.DELETE)
             return bad(METHOD_NOT_ALLOWED);
 
@@ -232,7 +237,7 @@ public class Router extends NanoHTTPD {
         switch (uri) {
             case "authorization/email/":
                 return authorization(session);
-            case "feed":
+            case "feed/":
                 return feed(session);
             default:
                 return newFixedLengthResponse("Invalid endpoint. Check out <a href='https://github.com/Sevauk/rss-server-epitech'>https://github.com/Sevauk/rss-server-epitech</a>");
